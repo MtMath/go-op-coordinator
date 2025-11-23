@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package calculator.coordinator;
+
+option go_package = "coordpb";
+
+service CoordinatorService {
+    rpc Evaluate(EvaluateRequest) returns (EvaluateResponse);
+}
+
+message EvaluateRequest {
+    string expression = 1;
+}
+
+message EvaluateResponse {
+    double result = 1; // resultado final da expressão
+    string rpn = 2;    // notação polonesa reversa (debug)
+}

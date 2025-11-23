@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package calculator.sub;
+
+option go_package = "subpb";
+
+service SubService {
+    rpc Compute(OperationRequest) returns (OperationResponse);
+}
+
+message OperationRequest {
+    double a = 1;
+    double b = 2;
+}
+
+message OperationResponse {
+    double result = 1;
+}

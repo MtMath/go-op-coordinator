@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package calculator.add;
+
+option go_package = "addpb";
+
+service AddService {
+    rpc Compute(OperationRequest) returns (OperationResponse);
+}
+
+message OperationRequest {
+    double a = 1;
+    double b = 2;
+}
+
+message OperationResponse {
+    double result = 1;
+}
