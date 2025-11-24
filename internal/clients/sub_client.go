@@ -9,6 +9,7 @@ import (
 	subpb "notask/op-coordinator/api/subpb"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 type SubClient struct {
@@ -20,7 +21,7 @@ var subInstance *SubClient
 
 func NewSubClient(addr string) *SubClient {
 	subOnce.Do(func() {
-		conn, err := grpc.NewClient(addr, grpc.WithInsecure())
+		conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 		if err != nil {
 			log.Fatalf("Error connecting to SubService: %v", err)
 		}

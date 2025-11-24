@@ -9,6 +9,7 @@ import (
 	mulpb "notask/op-coordinator/api/mulpb"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 type MulClient struct {
@@ -20,7 +21,7 @@ var mulInstance *MulClient
 
 func NewMulClient(addr string) *MulClient {
 	mulOnce.Do(func() {
-		conn, err := grpc.NewClient(addr, grpc.WithInsecure())
+		conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 		if err != nil {
 			log.Fatalf("Error connecting to MulService: %v", err)
 		}

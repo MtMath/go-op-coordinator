@@ -9,10 +9,11 @@ import (
 	addpb "notask/op-coordinator/api/addpb"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 type AddClient struct {
-    client addpb.AddServiceClient
+	client addpb.AddServiceClient
 }
 
 var addOnce sync.Once
@@ -20,7 +21,7 @@ var addInstance *AddClient
 
 func NewAddClient(addr string) *AddClient {
 	addOnce.Do(func() {
-		conn, err := grpc.NewClient(addr, grpc.WithInsecure())
+		conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 		if err != nil {
 			log.Fatalf("Error connecting to AddService: %v", err)
 		}
