@@ -2,13 +2,12 @@ package main
 
 import (
 	"context"
-	"log"
-	"net"
 	"os"
-	"os/signal"
-	"syscall"
+
+	"github.com/joho/godotenv"
 
 	addpb "notask/op-coordinator/api/addpb"
+	"notask/op-coordinator/internal/server"
 
 	"google.golang.org/grpc"
 )
@@ -24,26 +23,15 @@ func (s *AddServer) Compute(ctx context.Context, req *addpb.OperationRequest) (*
 }
 
 func main() {
-	lis, err := net.Listen("tcp", ":5001")
-	if err != nil {
-		log.Fatalf("Error opening port 5001: %v", err)
-	}
+	godotenv.Load()
+	addr := os.Getenv("ADD_ADDR")
 
-	grpcServer := grpc.NewServer()
-	addpb.RegisterAddServiceServer(grpcServer, &AddServer{})
+	grpcServer := server.New(addr)
 
-	go func() {
-		log.Println("AddService running on :5001")
-		if err := grpcServer.Serve(lis); err != nil {
-			log.Fatalf("Error: %v", err)
-		}
-	}()
+	grpcServer.RegisterService(func(s *grpc.Server) {
+		addpb.RegisterAddServiceServer(s, &AddServer{})
+	})
 
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-	<-quit
-
-	log.Println("Shutting down AddService...")
-	grpcServer.GracefulStop()
-	log.Println("AddService gracefully stopped.")
+	grpcServer.Start("AddService")
+	grpcServer.WaitForShutdown()
 }

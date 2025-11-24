@@ -1,35 +1,27 @@
 package main
 
 import (
-	"log"
-	"net"
 	"os"
-	"os/signal"
-	"syscall"
-
-	coordpb "notask/op-coordinator/api/coordpb"
-	"notask/op-coordinator/internal/coordinator"
 
 	"github.com/joho/godotenv"
+	coordpb "notask/op-coordinator/api/coordpb"
+	"notask/op-coordinator/internal/coordinator"
+	"notask/op-coordinator/internal/server"
+
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 )
 
 func main() {
-
 	godotenv.Load()
 
 	addAddr := os.Getenv("ADD_ADDR")
 	subAddr := os.Getenv("SUB_ADDR")
 	mulAddr := os.Getenv("MUL_ADDR")
 	divAddr := os.Getenv("DIV_ADDR")
+	coordinatorAddr := os.Getenv("COORDINATOR_ADDR")
 
-	lis, err := net.Listen("tcp", ":5000")
-	if err != nil {
-		log.Fatalf("Error opening port 5000: %v", err)
-	}
-
-	grpcServer := grpc.NewServer()
+	grpcServer := server.New(coordinatorAddr)
 
 	svc := coordinator.NewCoordinatorService(
 		addAddr,
@@ -38,22 +30,11 @@ func main() {
 		divAddr,
 	)
 
-	coordpb.RegisterCoordinatorServiceServer(grpcServer, svc)
+	grpcServer.RegisterService(func(s *grpc.Server) {
+		coordpb.RegisterCoordinatorServiceServer(s, svc)
+		reflection.Register(s)
+	})
 
-	reflection.Register(grpcServer)
-
-	go func() {
-		log.Println("Server running on port ...")
-		if err := grpcServer.Serve(lis); err != nil {
-			log.Fatalf("Error: %v", err)
-		}
-	}()
-
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-	<-quit
-
-	log.Println("Shutting down server...")
-	grpcServer.GracefulStop()
-	log.Println("Server gracefully stopped.")
+	grpcServer.Start("CoordinatorService")
+	grpcServer.WaitForShutdown()
 }

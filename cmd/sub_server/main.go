@@ -2,13 +2,11 @@ package main
 
 import (
 	"context"
-	"log"
-	"net"
 	"os"
-	"os/signal"
-	"syscall"
 
+	"github.com/joho/godotenv"
 	subpb "notask/op-coordinator/api/subpb"
+	"notask/op-coordinator/internal/server"
 
 	"google.golang.org/grpc"
 )
@@ -24,26 +22,13 @@ func (s *SubServer) Compute(ctx context.Context, req *subpb.OperationRequest) (*
 }
 
 func main() {
-	lis, err := net.Listen("tcp", ":5002")
-	if err != nil {
-		log.Fatalf("Error opening port 5002: %v", err)
-	}
+	godotenv.Load()
+	addr := os.Getenv("SUB_ADDR")
 
-	grpcServer := grpc.NewServer()
-	subpb.RegisterSubServiceServer(grpcServer, &SubServer{})
-
-	go func() {
-		log.Println("SubService running on :5002")
-		if err := grpcServer.Serve(lis); err != nil {
-			log.Fatalf("Error: %v", err)
-		}
-	}()
-
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-	<-quit
-
-	log.Println("Shutting down SubService...")
-	grpcServer.GracefulStop()
-	log.Println("SubService gracefully stopped.")
+	grpcServer := server.New(addr)
+	grpcServer.RegisterService(func(s *grpc.Server) {
+		subpb.RegisterSubServiceServer(s, &SubServer{})
+	})
+	grpcServer.Start("SubService")
+	grpcServer.WaitForShutdown()
 }

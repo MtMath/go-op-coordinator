@@ -3,13 +3,11 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
-	"net"
 	"os"
-	"os/signal"
-	"syscall"
 
+	"github.com/joho/godotenv"
 	divpb "notask/op-coordinator/api/divpb"
+	"notask/op-coordinator/internal/server"
 
 	"google.golang.org/grpc"
 )
@@ -29,26 +27,13 @@ func (s *DivServer) Compute(ctx context.Context, req *divpb.OperationRequest) (*
 }
 
 func main() {
-	lis, err := net.Listen("tcp", ":5004")
-	if err != nil {
-		log.Fatalf("Error opening port 5004: %v", err)
-	}
+	godotenv.Load()
+	addr := os.Getenv("DIV_ADDR")
 
-	grpcServer := grpc.NewServer()
-	divpb.RegisterDivServiceServer(grpcServer, &DivServer{})
-
-	go func() {
-		log.Println("DivService running on :5004")
-		if err := grpcServer.Serve(lis); err != nil {
-			log.Fatalf("Error: %v", err)
-		}
-	}()
-
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-	<-quit
-
-	log.Println("Shutting down DivService...")
-	grpcServer.GracefulStop()
-	log.Println("DivService gracefully stopped.")
+	grpcServer := server.New(addr)
+	grpcServer.RegisterService(func(s *grpc.Server) {
+		divpb.RegisterDivServiceServer(s, &DivServer{})
+	})
+	grpcServer.Start("DivService")
+	grpcServer.WaitForShutdown()
 }
