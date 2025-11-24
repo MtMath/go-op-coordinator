@@ -1,0 +1,42 @@
+services:
+  coordinator:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["/app/coordinator"]
+    ports:
+      - "5000:5000"
+    environment:
+      - ADD_ADDR=add:5001
+      - SUB_ADDR=sub:5002
+      - MUL_ADDR=mul:5003
+      - DIV_ADDR=div:5004
+    depends_on:
+      - add
+      - sub
+      - mul
+      - div
+
+  add:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["/app/add"]
+
+  sub:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["/app/sub"]
+
+  mul:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["/app/mul"]
+
+  div:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["/app/div"]
