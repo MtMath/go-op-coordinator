@@ -4,6 +4,9 @@ import (
 	"context"
 	"log"
 	"net"
+	"os"
+	"os/signal"
+	"syscall"
 
 	addpb "notask/op-coordinator/api/addpb"
 
@@ -29,6 +32,18 @@ func main() {
 	grpcServer := grpc.NewServer()
 	addpb.RegisterAddServiceServer(grpcServer, &AddServer{})
 
-	log.Println("AddService running on :5001")
-	grpcServer.Serve(lis)
+	go func() {
+		log.Println("AddService running on :5001")
+		if err := grpcServer.Serve(lis); err != nil {
+			log.Fatalf("Error: %v", err)
+		}
+	}()
+
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+
+	log.Println("Shutting down AddService...")
+	grpcServer.GracefulStop()
+	log.Println("AddService gracefully stopped.")
 }

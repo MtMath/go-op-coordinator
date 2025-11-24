@@ -4,6 +4,9 @@ import (
 	"context"
 	"log"
 	"net"
+	"os"
+	"os/signal"
+	"syscall"
 
 	mulpb "notask/op-coordinator/api/mulpb"
 
@@ -29,6 +32,18 @@ func main() {
 	grpcServer := grpc.NewServer()
 	mulpb.RegisterMulServiceServer(grpcServer, &MulServer{})
 
-	log.Println("MulService running on :5003")
-	grpcServer.Serve(lis)
+	go func() {
+		log.Println("MulService running on :5003")
+		if err := grpcServer.Serve(lis); err != nil {
+			log.Fatalf("Error: %v", err)
+		}
+	}()
+
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+
+	log.Println("Shutting down MulService...")
+	grpcServer.GracefulStop()
+	log.Println("MulService gracefully stopped.")
 }

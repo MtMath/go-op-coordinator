@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"os"
+	"os/signal"
+	"syscall"
 
 	divpb "notask/op-coordinator/api/divpb"
 
@@ -34,6 +37,18 @@ func main() {
 	grpcServer := grpc.NewServer()
 	divpb.RegisterDivServiceServer(grpcServer, &DivServer{})
 
-	log.Println("DivService running on :5004")
-	grpcServer.Serve(lis)
+	go func() {
+		log.Println("DivService running on :5004")
+		if err := grpcServer.Serve(lis); err != nil {
+			log.Fatalf("Error: %v", err)
+		}
+	}()
+
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+
+	log.Println("Shutting down DivService...")
+	grpcServer.GracefulStop()
+	log.Println("DivService gracefully stopped.")
 }

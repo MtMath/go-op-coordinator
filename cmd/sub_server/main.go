@@ -4,6 +4,9 @@ import (
 	"context"
 	"log"
 	"net"
+	"os"
+	"os/signal"
+	"syscall"
 
 	subpb "notask/op-coordinator/api/subpb"
 
@@ -29,6 +32,18 @@ func main() {
 	grpcServer := grpc.NewServer()
 	subpb.RegisterSubServiceServer(grpcServer, &SubServer{})
 
-	log.Println("SubService running on :5002")
-	grpcServer.Serve(lis)
+	go func() {
+		log.Println("SubService running on :5002")
+		if err := grpcServer.Serve(lis); err != nil {
+			log.Fatalf("Error: %v", err)
+		}
+	}()
+
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+
+	log.Println("Shutting down SubService...")
+	grpcServer.GracefulStop()
+	log.Println("SubService gracefully stopped.")
 }

@@ -4,6 +4,8 @@ import (
 	"log"
 	"net"
 	"os"
+	"os/signal"
+	"syscall"
 
 	coordpb "notask/op-coordinator/api/coordpb"
 	"notask/op-coordinator/internal/coordinator"
@@ -40,10 +42,18 @@ func main() {
 
 	reflection.Register(grpcServer)
 
-	log.Println("Coordinator running on :5000")
-	if err := grpcServer.Serve(lis); err != nil {
-		log.Fatalf("Error: %v", err)
-	}
+	go func() {
+		log.Println("Server running on port ...")
+		if err := grpcServer.Serve(lis); err != nil {
+			log.Fatalf("Error: %v", err)
+		}
+	}()
 
-	grpcServer.Serve(lis)
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+
+	log.Println("Shutting down server...")
+	grpcServer.GracefulStop()
+	log.Println("Server gracefully stopped.")
 }
