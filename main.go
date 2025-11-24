@@ -1,8 +1,6 @@
 package main
 
 import (
-	"context"
-	"fmt"
 	"log"
 	"net"
 	"os"
@@ -24,50 +22,6 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 )
-
-type AddServer struct {
-	addpb.UnimplementedAddServiceServer
-}
-
-func (s *AddServer) Compute(ctx context.Context, req *addpb.OperationRequest) (*addpb.OperationResponse, error) {
-	return &addpb.OperationResponse{
-		Result: req.A + req.B,
-	}, nil
-}
-
-type SubServer struct {
-	subpb.UnimplementedSubServiceServer
-}
-
-func (s *SubServer) Compute(ctx context.Context, req *subpb.OperationRequest) (*subpb.OperationResponse, error) {
-	return &subpb.OperationResponse{
-		Result: req.A - req.B,
-	}, nil
-}
-
-type MulServer struct {
-	mulpb.UnimplementedMulServiceServer
-}
-
-func (s *MulServer) Compute(ctx context.Context, req *mulpb.OperationRequest) (*mulpb.OperationResponse, error) {
-	return &mulpb.OperationResponse{
-		Result: req.A * req.B,
-	}, nil
-}
-
-type DivServer struct {
-	divpb.UnimplementedDivServiceServer
-}
-
-func (s *DivServer) Compute(ctx context.Context, req *divpb.OperationRequest) (*divpb.OperationResponse, error) {
-	if req.B == 0 {
-		return nil, fmt.Errorf("division by zero")
-	}
-
-	return &divpb.OperationResponse{
-		Result: req.A / req.B,
-	}, nil
-}
 
 func startGRPCServer(name, addr string, register func(*grpc.Server)) {
 	go func() {
