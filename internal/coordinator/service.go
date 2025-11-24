@@ -6,6 +6,7 @@ import (
 	"notask/op-coordinator/internal/clients"
 	"notask/op-coordinator/internal/dispatcher"
 	"notask/op-coordinator/internal/parser"
+	"sync"
 
 	coordpb "notask/op-coordinator/api/coordpb"
 )
@@ -40,19 +41,34 @@ func (s *CoordinatorService) evalDistributed(node *parser.ASTNode) (float64, err
 		return node.EvalLiteral()
 	}
 
-	left, err := s.evalDistributed(node.Left)
-	if err != nil {
-		return 0, err
+	var left, right float64
+	var errLeft, errRight error
+	var wg sync.WaitGroup
+	wg.Add(2)
+
+	go func() {
+		defer wg.Done()
+		left, errLeft = s.evalDistributed(node.Left)
+	}()
+
+	go func() {
+		defer wg.Done()
+		right, errRight = s.evalDistributed(node.Right)
+	}()
+
+	wg.Wait()
+
+	if errLeft != nil {
+		return 0, errLeft
 	}
 
-	right, err := s.evalDistributed(node.Right)
-	if err != nil {
-		return 0, err
+	if errRight != nil {
+		return 0, errRight
 	}
 
 	result, err := s.Dispatcher.Dispatch(node.Value, left, right)
 	if err != nil {
-		return 0, fmt.Errorf("erro ao chamar dispatcher: %w", err)
+		return 0, fmt.Errorf("error calling dispatcher: %w", err)
 	}
 
 	return result, nil
